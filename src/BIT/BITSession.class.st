@@ -5,11 +5,32 @@ Class {
 		'recording',
 		'ps',
 		'endOfRecord',
-		'actionBlock'
+		'actionBlock',
+		'isInstrumenting'
 	],
 	#category : 'BIT',
 	#package : 'BIT'
 }
+
+{ #category : 'accessing' }
+BITSession >> allocations [
+	
+	^ recording allocations
+]
+
+{ #category : 'actions api' }
+BITSession >> haltOn: n [
+
+	"Stop at the last event"
+	^ self replayUpTo: self numberOfEvents with: BITHalter
+]
+
+{ #category : 'actions api' }
+BITSession >> initialize [
+
+	super initialize.
+	isInstrumenting := false.
+]
 
 { #category : 'actions api' }
 BITSession >> instrumentAllocationsWith: instrumentationHandler [
@@ -64,10 +85,16 @@ BITSession >> record: aBlock [
 	actionBlock ifNotNil: [ self error: 'I already have a recording!' ].
 	actionBlock := aBlock.
 
-	[self startRecording.
-	result := aBlock ensure: [ self stopRecording ]]
-		forkAt: Processor highIOPriority.
-		
+	[
+	self startRecording.
+	result := [
+	          aBlock
+		          on: Error
+		          do: [ :e |
+			          self stopRecording.
+			          e pass ] ] ensure: [ self stopRecording ] ] forkAt:
+		Processor highIOPriority.
+
 	self waitEndOfRecord.
 	^ result
 ]
@@ -81,17 +108,18 @@ BITSession >> recording [
 BITSession >> replay [
 	
 	"Stop at the last event"
-	^ self replayUpTo: self numberOfEvents
+	^ self replayUpTo: self numberOfEvents with: BITStopReplay
 ]
 
 { #category : 'actions api' }
-BITSession >> replayUpTo: n [
-	
+BITSession >> replayUpTo: n with: halter [
+
 	| result |
-	[self startReplayingUpTo: n.
-	result := actionBlock ensure: [ self stopRecording ]]
-		forkAt: Processor highIOPriority.
-		
+	[
+	self startReplayingUpTo: recording allocations size with: halter.
+	result := actionBlock ensure: [ self stopRecording ] ] forkAt:
+		Processor highIOPriority.
+
 	self waitEndOfRecord.
 	^ result
 ]
@@ -102,40 +130,38 @@ BITSession >> startRecording [
 	| instrumentationHandler |
 	endOfRecord := Semaphore new.
 	recording := instrumentationHandler := BITAllocationTrackerHandler new.
+	isInstrumenting := true.
 	self instrumentAllocationsWith: instrumentationHandler
 ]
 
 { #category : 'actions api' }
-BITSession >> startReplaying [
-
-	"Just don't stop"
-	^ self startReplayingUpTo: recording allocations size + 1
-]
-
-{ #category : 'actions api' }
-BITSession >> startReplayingUpTo: n [
+BITSession >> startReplayingUpTo: n with: stopper [
 
 	| copy |
 	recording ifNil: [ self error: 'No recording available!' ].
+	isInstrumenting := true.
 	endOfRecord := Semaphore new.
 
 	copy := recording allocations copy.
-	copy at: n put: (BITHalter new
+	copy at: n put: (stopper new
 			 realObject: (copy at: n);
 			 session: self;
 			 yourself).
 
 	self prepareRecording.
-	self instrumentAllocationsWith: (BITAllocationReplayHandler newOn: copy)
+	self instrumentAllocationsWith:
+		(BITAllocationReplayHandler newOn: copy)
 ]
 
 { #category : 'actions api' }
 BITSession >> stopRecording [
 
+	isInstrumenting ifFalse: [ ^ self ].
+
 	MpMethodProxy disableInstrumentation.
 	ps do: [ :p | p uninstall ].
-
 	endOfRecord signal.
+	isInstrumenting := false
 ]
 
 { #category : 'actions api' }
