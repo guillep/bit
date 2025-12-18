@@ -1,10 +1,6 @@
 Class {
 	#name : 'BITHalter',
-	#superclass : 'Object',
-	#instVars : [
-		'realObject',
-		'session'
-	],
+	#superclass : 'BITStopReplay',
 	#category : 'BIT',
 	#package : 'BIT'
 }
@@ -20,31 +16,7 @@ BITHalter class >> on: aRealObject [
 { #category : 'as yet unclassified' }
 BITHalter >> haltMaybe [
 	<debuggerCompleteToSender>
-	session stopRecording.
+	super haltMaybe.
 	self halt.
 	^ realObject
-]
-
-{ #category : 'accessing' }
-BITHalter >> realObject [
-
-	^ realObject
-]
-
-{ #category : 'accessing' }
-BITHalter >> realObject: anObject [
-
-	realObject := anObject
-]
-
-{ #category : 'accessing' }
-BITHalter >> session [
-
-	^ session
-]
-
-{ #category : 'accessing' }
-BITHalter >> session: anObject [
-
-	session := anObject
 ]
