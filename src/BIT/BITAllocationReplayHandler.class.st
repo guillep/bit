@@ -17,13 +17,6 @@ BITAllocationReplayHandler class >> newOn: allocationList [
 ]
 
 { #category : 'accessing' }
-BITAllocationReplayHandler >> afterExecutionWithReceiver: anObject arguments: anArrayOfObjects returnValue: returnValue [
-	<debuggerCompleteToSender>
-	"Ignore the allocated object. Replay the old one!"
-	^ allocationStream next haltMaybe
-]
-
-{ #category : 'accessing' }
 BITAllocationReplayHandler >> allocationStream [
 
 	^ allocationStream
@@ -33,4 +26,25 @@ BITAllocationReplayHandler >> allocationStream [
 BITAllocationReplayHandler >> allocationStream: anObject [
 
 	allocationStream := anObject
+]
+
+{ #category : 'accessing' }
+BITAllocationReplayHandler >> insteadExecutionWithReceiver: anObject [
+	<debuggerCompleteToSender>
+	"Ignore the allocated object. Replay the old one!"
+	^ allocationStream next haltMaybe
+]
+
+{ #category : 'accessing' }
+BITAllocationReplayHandler >> insteadExecutionWithReceiver: anObject with: argument [
+	<debuggerCompleteToSender>
+	"Ignore the allocated object. Replay the old one!"
+	^ allocationStream next haltMaybe
+]
+
+{ #category : 'accessing' }
+BITAllocationReplayHandler >> insteadExecutionWithReceiver: anObject with: argument with: argument2 [
+	<debuggerCompleteToSender>
+	"Ignore the allocated object. Replay the old one!"
+	^ allocationStream next haltMaybe
 ]
